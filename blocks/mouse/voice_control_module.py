@@ -1,85 +1,80 @@
 import requests
 import os
-from PIL import ImageGrab
+from PIL import Image, ImageGrab, ImageOps
 from difflib import SequenceMatcher
 from itertools import combinations
+import re
+
+def clean_text(s: str) -> str:
+    return re.sub(r'[^A-Za-z0-9:]', '', s).lower()
 
 def word_match_percentage(said: str, given: str) -> float:
-    said_words = said.split()
-    given_words = given.split()
+    said_clean = clean_text(said)
+    given_clean = clean_text(given)
 
-    if len(given_words) < len(said_words):
-        ratio = SequenceMatcher(None, said, given).ratio()
-        return round(ratio * 100, 2)
-    
-    if len(given_words) == len(said_words):
-        ratio = SequenceMatcher(None, said, given).ratio()
+    said_words = said_clean.split()
+    given_words = given_clean.split()
+
+    if len(given_words) < len(said_words) or len(given_words) == len(said_words):
+        ratio = SequenceMatcher(None, said_clean, given_clean).ratio()
         return round(ratio * 100, 2)
 
     max_ratio = 0.0
     for combo in combinations(given_words, len(said_words)):
         candidate = " ".join(combo)
-        ratio = SequenceMatcher(None, said, candidate).ratio()
+        ratio = SequenceMatcher(None, said_clean, candidate).ratio()
         max_ratio = max(max_ratio, ratio)
 
     return round(max_ratio * 100, 2)
 
-def predicted_word_index_per(word:str, result) :
+def predicted_word_index_per(word: str, result):
     mx_i = -1
     mx_pre = -1
-    i = 0
-    for x in result:
-        if x==' ' or x=='':
-            continue
-        x = x['LineText']
-        p = word_match_percentage(word,x)
-        if p>mx_pre:
-            mx_pre = p
-            mx_i = i
-        i+=1
-    return mx_i,mx_pre
+    for line_index, line in enumerate(result):
+        words = line['Words']
+        for i in range(len(words)):
+            for j in range(i+1, len(words)+1):
+                candidate = ' '.join([w['WordText'] for w in words[i:j]])
+                p = word_match_percentage(word.lower(), candidate.lower())
+                if p > mx_pre:
+                    mx_pre = p
+                    mx_i = line_index
+    return mx_i, mx_pre
 
-def center_point(words):
-    first = words[0]
-    x1 = first['Left'] + first['Width'] / 2
-    y1 = first['Top'] + first['Height'] / 2
-
-    if len(words) > 1:
-        last = words[-1]
-        x2 = last['Left'] + last['Width'] / 2
-        y2 = last['Top'] + last['Height'] / 2
-        return ((x1 + x2) / 2, (y1 + y2) / 2)
-    else:
-        return (x1, y1)
+def center_point(words,xx):
+    wp = 0
+    x, y = 0.0 , 0.0
+    print(words)
+    for word in words:
+        print(word['WordText'], x)
+        twp = word_match_percentage(word['WordText'].lower(), xx)
+        if twp>wp:
+            wp=twp
+            x = word['Left']+word['Width']/2
+            y = word['Top']+word['Height']/2
+            if wp==100:
+                break
+    return (x, y)
 
 class VoiceControlModule:
     def __init__(self):
-        self.api_key = "K83540931188957"
+        self.api_key = os.environ["SPACE_OCR_API_KEY"]
         self.url_api = "https://api.ocr.space/parse/image"
-    
-    def get_click_per_point(self, x):
+
+    def get_click_per_point(self, target_word: str):
+        sv_w = target_word.lower()
         os.makedirs('cache', exist_ok=True)
-        file_path = os.path.join('cache', 'click.jpg')  # JPG is smaller than PNG
+        file_path = os.path.join('cache', 'click.jpg')
         image = os.path.abspath(file_path)
 
-        screenshot = ImageGrab.grab()
+        img = ImageGrab.grab()
+        img.save(image, "JPEG", quality=100, optimize=True)
 
-        screenshot.save(image, "JPEG", quality=95, optimize=True)
-
-        max_size = 1024 * 1024 
-        file_size = os.path.getsize(image)
-
-        if file_size > max_size:
-            ratio = max_size / file_size
-            est_quality = int(95 * ratio)
-
-            est_quality = max(20, min(est_quality, 95))
-
-            screenshot.save(image, "JPEG", quality=est_quality, optimize=True)
-
-            while os.path.getsize(image) > max_size and est_quality > 20:
-                est_quality -= 5
-                screenshot.save(image, "JPEG", quality=est_quality, optimize=True)
+        max_size = 1024 * 1024
+        est_quality = 95
+        while os.path.getsize(image) > max_size and est_quality > 20:
+            est_quality -= 5
+            img.save(image, "JPEG", quality=est_quality, optimize=True)
 
         percentage, coords = 0, (0, 0)
 
@@ -91,12 +86,17 @@ class VoiceControlModule:
             )
             result = response.json()
 
-            if result['IsErroredOnProcessing']:
-                print('error', result['ErrorMessage'])
-            else:
-                result = result['ParsedResults'][0]['TextOverlay']['Lines']
-                predicted_index, percentage = predicted_word_index_per(x, result)
-                p = center_point(result[predicted_index]['Words'])
+        if result['IsErroredOnProcessing']:
+            print('OCR Error:', result['ErrorMessage'])
+        else:
+            lines = result['ParsedResults'][0]['TextOverlay']['Lines']
+            #print("OCR Lines:", lines)
+            predicted_index, percentage = predicted_word_index_per(target_word, lines)
+            if predicted_index != -1:
+                print(lines[predicted_index]['Words'])
+                print(sv_w)
+                p = center_point(lines[predicted_index]['Words'],sv_w)
                 coords = (float(p[0]), float(p[1]))
+                print(coords)
 
         return percentage, coords

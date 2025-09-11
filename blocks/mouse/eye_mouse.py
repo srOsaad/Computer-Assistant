@@ -17,7 +17,7 @@ class EyeMouseModule:
         model_path = os.path.join(base_dir, "shape_predictor_68_face_landmarks.dat")
         self.predictor = dlib.shape_predictor(model_path)
         pyautogui.FAILSAFE = True
-        self.sensitivity = 2.0
+        self.sensitivity = 1.0
         self.safe_margin = 1
         self.max_history = 2
 

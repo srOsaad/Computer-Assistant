@@ -16,7 +16,7 @@ def say(x):
 def openSettings():
     subprocess.run(["start", "ms-settings:"], shell=True)
 
-def appopen(self,x):
+def appopen(x):
     os.system(x)
     
 def webopen(x):

@@ -54,7 +54,7 @@ ApplicationWindow {
         'alarm' : {
             width: 354,
             height: 161,
-            interval: 60*1000,
+            interval: 5*1000,
             alarm: true,
             screenshot: false
         }
@@ -626,9 +626,9 @@ ApplicationWindow {
             adam.showSettings()
         }
 
-        function onListening() {
-            app.listening = true
-            app.thinking = false
+        function onListening(x) {
+            app.listening = x
+            //app.thinking = false
         }
         
         function onThinking() {

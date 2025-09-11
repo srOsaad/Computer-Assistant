@@ -5,7 +5,7 @@ class PrimaryInputModule:
         pass
     
     def type(self,x):
-        pyautogui.write(self,x,interval=0.25)
+        pyautogui.typewrite(x,interval=0.05)
     
     def moveTo(self,point):
         pyautogui.moveTo(point[0],point[1],0.5)
@@ -36,6 +36,9 @@ class PrimaryInputModule:
     
     def cut_all(self):
         pyautogui.hotkey('ctrl','x')
+    
+    def paste_all(self):
+        pyautogui.hotkey('ctrl','v')
     
     def delete_all(self):
         pyautogui.press('del')

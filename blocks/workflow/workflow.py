@@ -20,6 +20,8 @@ class Backend(QObject):
 
     def handle(self,y):
         x = y.strip().lower()
+        if x.endswith("."):
+            x = x[:-1]
         if x.startswith(('turn off','stop','shutdown')):
             if 'mode' in x:
                 if 'typing' in x and 't' in self.modes:
@@ -27,7 +29,7 @@ class Backend(QObject):
                     self.modes.remove('t')
                     say('Typing mode turned off.')
                     return '1t'
-                elif 'eye' in x and 'e' in self.modes:
+                elif ('eye' in x or 'i' in x) and 'e' in self.modes:
                     self.ok.emit(True)
                     self.eyemouse_handler.run_function('terminate')
                     self.modes.remove('e')
@@ -55,7 +57,7 @@ class Backend(QObject):
                     self.modes.append('t')
                     say('Typing mode turn on.')
                     return '1T'
-                elif 'eye' in x and 'e' not in self.modes:
+                elif ('eye' in x or 'i' in x) and 'e' not in self.modes:
                     self.ok.emit(True)
                     self.eyemouse_handler.run_function('start')
                     self.modes.append('e')
@@ -73,7 +75,7 @@ class Backend(QObject):
         if 'time' in x and not 'in' in x:
             self.ok.emit(True)
             say(f"It's {current_time()} now.")
-            return '61'
+            return 'd2'
         
         if x.startswith('search'):
             if len(x)>7:
@@ -88,6 +90,7 @@ class Backend(QObject):
                 x = x[8:]
                 ans = self.qna_handler.ask(x)
                 say(ans)
+                self.ok.emit(True)
                 return '62'
             return
         
@@ -123,16 +126,18 @@ class Backend(QObject):
             ss_data, filepath = self.dynamicisland_handler.takeScreenShot()
             self.screenshotData.emit(ss_data,filepath)
             return 'd1'
-        
-        if y.startswith('#d copy'):
+
+        if y.startswith('#d cpy_'):
+            print('123')
             y = y[8:]
-            result = self.dynamicisland_handler.copyImageToClipboard(x)
+            print(y)
+            result = self.dynamicisland_handler.copyImageToClipboard(y)
             if result:
                 self.ok.emit(True)
                 return 'd1'
         
         if y.startswith('#d reveal'):
             y = y[10:]
-            print(y)
             r = self.dynamicisland_handler.revealFile(y)
             self.ok.emit(r)
+            return 'd1'
