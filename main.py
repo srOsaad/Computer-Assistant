@@ -62,7 +62,7 @@ class Bridge(QObject):
         self.voice_thread.listening.connect(self.listening)
         self.voice_thread.transcribing.connect(self.transcribe_status)
         self.voice_thread.stopTimer.connect(self.stop_responding_pre)
-        self.voice_thread.setCurrentInputDevice(self.selected_audio_device)
+        #self.voice_thread.setCurrentInputDevice(self.selected_audio_device)
 
         self.transcribe_status_timer.setSingleShot(True)
         self.transcribe_status_timer.setInterval(500)
@@ -76,7 +76,7 @@ class Bridge(QObject):
 
     def stop_responding_pre(self):
         self.stopTimer.start(300000)
-        self.gotResult.emit(False)
+        self.gotResult.emit(True)
 
     def stop_responding(self):
         self.voice_thread.reset_active()
@@ -154,7 +154,7 @@ class Bridge(QObject):
             self.selected_camera_device = p
         else:
             self.selected_camera_device = 0 if len(self.camera_devices) > 0 else -1
-        print(self.audio_devices, self.selected_audio_device, self.camera_devices, self.selected_camera_device)
+        #print(self.audio_devices, self.selected_audio_device, self.camera_devices, self.selected_camera_device)
         self.availableDevices.emit(self.audio_devices, self.selected_audio_device, self.camera_devices, self.selected_camera_device)
 
     @Slot(int, int)
@@ -162,7 +162,7 @@ class Bridge(QObject):
         print(audio_device_index, camera_device_index)
         self.selected_audio_device = audio_device_index
         self.selected_camera_device = camera_device_index
-        self.voice_thread.setCurrentInputDevice(self.selected_audio_device)
+        #self.voice_thread.setCurrentInputDevice(self.selected_audio_device)
 
     @Slot(str)
     def newCommand(self, command: str):
